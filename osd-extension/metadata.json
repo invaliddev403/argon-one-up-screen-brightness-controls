@@ -1,0 +1,7 @@
+{
+  "uuid": "ddc-brightness-osd@redwood.local",
+  "name": "DDC Brightness Overlay",
+  "description": "Display the DDC monitor brightness reported by the keyboard service.",
+  "shell-version": ["50"],
+  "version": 1
+}

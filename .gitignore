@@ -1,0 +1,24 @@
+# Python bytecode and local environments
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Local diagnostics and crash dumps
+*.log
+*-backtrace.txt
+core
+core.*
+
+# Editor and OS files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Local credentials
+.env
+.env.*
+!.env.example
