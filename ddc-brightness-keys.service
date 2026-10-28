@@ -3,7 +3,7 @@ Description=Keyboard brightness control for DDC monitor
 After=multi-user.target
 
 [Service]
-User=redwood
+User=@SERVICE_USER@
 SupplementaryGroups=input i2c
 CacheDirectory=ddc-brightness-keys
 Environment=XDG_CACHE_HOME=/var/cache/ddc-brightness-keys

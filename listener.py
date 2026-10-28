@@ -25,8 +25,8 @@ def show_brightness():
     result = subprocess.run(
         ['/usr/bin/gdbus', 'call', '--address',
          f'unix:path=/run/user/{os.getuid()}/bus', '--dest', 'org.gnome.Shell',
-         '--object-path', '/local/redwood/DdcBrightness',
-         '--method', 'local.redwood.DdcBrightness.Show', str(percent)],
+         '--object-path', '/local/argononeup/DdcBrightness',
+         '--method', 'local.argononeup.DdcBrightness.Show', str(percent)],
         capture_output=True, text=True, timeout=3)
     if result.returncode:
         print('Brightness overlay unavailable (enable extension):', result.stderr.strip(), flush=True)

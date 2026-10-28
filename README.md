@@ -22,7 +22,6 @@ Working configuration confirmed by the adopter on October 27, 2026:
 | OS | Ubuntu 26.04.1 LTS (Resolute), arm64 |
 | Desktop | Ubuntu GNOME, Wayland |
 | GNOME Shell | 50.1 |
-| User | `redwood`, UID 1000 |
 | ddcutil / libddcutil5 | 2.2.5-1 from Ubuntu resolute/universe |
 | ddcui | 0.6.0-6 from Ubuntu resolute/universe |
 | ddcui build/runtime libraries | libddcutil 2.2.1 / 2.2.5; Qt 5.15.17 / 5.15.18 |
@@ -40,7 +39,7 @@ Input event numbers such as `event18` and `event7` are observations, not configu
 2. Presses and held-key repeats enqueue changes of five units. A single worker serializes DDC operations and combines queued changes to avoid concurrent writes.
 3. The worker calls `ddcutil --bus 14 --skip-ddc-checks --noverify setvcp 10 + 5` (or `- 5`). Each combined change is capped at 100 units.
 4. After a successful command, it waits 150 ms and reads `getvcp 10 --terse`. The overlay uses the returned current/max ratio, not an assumed brightness value.
-5. It calls the extension's `local.redwood.DdcBrightness.Show` method on the user's session bus. The extension displays a brightness icon, percentage label, and native GNOME OSD bar on all monitors.
+5. It calls the extension's `local.argononeup.DdcBrightness.Show` method on the user's session bus. The extension displays a brightness icon, percentage label, and native GNOME OSD bar on all monitors.
 
 The overlay is transient. This does not add a permanent panel indicator or connect Ubuntu's Quick Settings brightness slider to DDC. Readback can lag on some monitors; the 150 ms delay is a local choice, not a universal guarantee.
 
@@ -83,14 +82,14 @@ Confirm both the physical brightness change and the returned value. The original
 
 ### 2. Adapt the local settings before installing
 
-The supplied files currently contain the working adopter's settings. They are not a generic installer that discovers a username and monitor automatically.
+The supplied files currently contain the working adopter's settings. The installers detect your username; monitor selection remains manual.
 
 | File | Setting to check |
 | --- | --- |
-| `ddc-brightness-keys.service` | Replace `User=redwood` with your account; verify `input` and `i2c` groups exist. |
+| `ddc-brightness-keys.service` | The installer sets the service user to your current account; verify `input` and `i2c` groups exist. |
 | `listener.py` | Replace bus `14` in **both** DDC commands; five-unit increments are in `directions`. |
 | `osd-extension/metadata.json` | Declares support for GNOME Shell 50 only. Other versions require compatibility review and testing. |
-| `setup.py` | Legacy shortcut code includes UID 1000 and display 1; it is no longer the working key-control path. |
+| `setup.py` | Legacy shortcut code uses the current UID and display 1; it is no longer the working key-control path. |
 
 The listener derives the session-bus UID from its running user; there is no UID setting needed for the overlay. Keep the fixed monitor bus synchronized between the write and read commands. Port or hardware changes can renumber it.
 
@@ -116,8 +115,8 @@ The first script installs `python3-evdev`, copies the listener and service to sy
 A newly installed extension may not be discoverable until you **log out and back in** on Wayland. Then run:
 
 ```bash
-gnome-extensions enable ddc-brightness-osd@redwood.local
-gnome-extensions info ddc-brightness-osd@redwood.local
+gnome-extensions enable ddc-brightness-osd@argon-one-up.local
+gnome-extensions info ddc-brightness-osd@argon-one-up.local
 ```
 
 Expect `Enabled: Yes` and `State: ACTIVE`. Press a brightness key, with Fn if needed. Confirm the screen changes and the percentage/bar appears. Close `ddcui` during testing to avoid competing changes.
@@ -127,7 +126,7 @@ Expect `Enabled: Yes` and `State: ACTIVE`. Press a brightness key, with Fn if ne
 ```bash
 systemctl is-enabled ddc-brightness-keys
 systemctl is-active ddc-brightness-keys
-gnome-extensions info ddc-brightness-osd@redwood.local
+gnome-extensions info ddc-brightness-osd@argon-one-up.local
 ```
 
 The service is enabled under `multi-user.target`, so it starts at boot. Extension enablement persists for the account and GNOME loads it on login. A reboot test remains a useful adoption check; persistence is configured, but no reboot test was recorded in the original session. The service controls keys; it does not restore a saved brightness value at boot.
@@ -149,7 +148,7 @@ Press only the brightness keys, try Fn if needed, then Ctrl+C. Expect codes 225 
 ### Brightness works but overlay does not
 
 ```bash
-gnome-extensions info ddc-brightness-osd@redwood.local
+gnome-extensions info ddc-brightness-osd@argon-one-up.local
 sudo journalctl -u ddc-brightness-keys -n 20 --no-pager
 ```
 
@@ -157,8 +156,8 @@ Test just the extension from your normal desktop terminal (this displays 50% wit
 
 ```bash
 gdbus call --session --dest org.gnome.Shell \
-  --object-path /local/redwood/DdcBrightness \
-  --method local.redwood.DdcBrightness.Show 50
+  --object-path /local/argononeup/DdcBrightness \
+  --method local.argononeup.DdcBrightness.Show 50
 ```
 
 - `Permission denied` connecting to the bus: check the installed service with `systemctl cat ddc-brightness-keys`. The working configuration uses **`ProtectHome=read-only`**. `ProtectHome=true` hid `/run/user`; exposing the socket alone with a bind mount also failed because its parent remained inaccessible.
@@ -170,7 +169,7 @@ gdbus call --session --dest org.gnome.Shell \
 
 The original service spent several seconds testing unsupported features `0xdd` and `0x41` on every invocation. Direct bus selection and `--skip-ddc-checks` removed these startup probes. `--noverify` avoids an immediate post-write verification; a separate delayed read supplies the overlay value. These choices were made after confirming feature `0x10` worked on this monitor.
 
-`Error opening /home/redwood/.cache/ddcutil/dsa: Permission denied` was caused by service isolation, not by missing monitor permissions. The working unit provides:
+`Error opening $HOME/.cache/ddcutil/dsa: Permission denied` was caused by service isolation, not by missing monitor permissions. The working unit provides:
 
 ```ini
 CacheDirectory=ddc-brightness-keys
@@ -199,7 +198,7 @@ Keep these when updating the service. If the monitor stops responding after cabl
 | `/usr/local/libexec/ddc-brightness-keys.py` | Root-owned installed listener; runs as the service's configured user. |
 | `/etc/systemd/system/ddc-brightness-keys.service` | System service definition. |
 | `/var/cache/ddc-brightness-keys` | Writable service cache managed by systemd. |
-| `~/.local/share/gnome-shell/extensions/ddc-brightness-osd@redwood.local/` | Per-user overlay extension. |
+| `~/.local/share/gnome-shell/extensions/ddc-brightness-osd@argon-one-up.local/` | Per-user overlay extension. |
 
 The service receives supplementary `input` and `i2c` groups without adding your account permanently to `input`. Input-group access permits reading input devices; the implementation filters for brightness-capable devices, ignores other key events, and logs no ordinary keystrokes. It opens those devices without grabbing them. GNOME may still display its own response to the same keys. The service runs even outside a logged-in desktop session; overlay calls can fail harmlessly when GNOME is absent.
 
@@ -207,13 +206,15 @@ The extension exports its method on the session bus and allows session clients t
 
 Installers copy files: editing a source file here does not update the running installation. Rerun `install.sh` for listener/service changes or `install-osd.sh` for overlay/service changes. Reinstalling is intended to be repeatable. The latter prints an enablement message if the enable command succeeds; check `gnome-extensions info` for actual ACTIVE state.
 
+If upgrading from the initial prototype, the extension UUID and D-Bus interface have changed to project identifiers. In GNOME's Extensions application, disable the previous **DDC Brightness Overlay** instance before running `install-osd.sh`. Log out/in if necessary, then enable `ddc-brightness-osd@argon-one-up.local`. Update the listener and extension together so their interface names match. The service name is unchanged.
+
 ## Disable or remove
 
 Stop key control and disable the overlay:
 
 ```bash
 sudo systemctl disable --now ddc-brightness-keys
-gnome-extensions disable ddc-brightness-osd@redwood.local
+gnome-extensions disable ddc-brightness-osd@argon-one-up.local
 ```
 
 For full removal, run from this source folder as your desktop user:
@@ -223,7 +224,7 @@ python3 setup.py --undo
 sudo rm -f /etc/systemd/system/ddc-brightness-keys.service
 sudo rm -f /usr/local/libexec/ddc-brightness-keys.py
 sudo systemctl daemon-reload
-gnome-extensions uninstall ddc-brightness-osd@redwood.local
+gnome-extensions uninstall ddc-brightness-osd@argon-one-up.local
 sudo rm -rf /var/cache/ddc-brightness-keys
 ```
 

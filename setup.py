@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 """Install or remove GNOME shortcuts for DDC monitor brightness."""
+import os
 import sys
 from gi.repository import Gio
 
@@ -28,7 +29,7 @@ def main():
         else:
             shortcut.set_string('name', name)
             shortcut.set_string('command',
-                '/usr/bin/flock -w 2 /run/user/1000/ddc-brightness.lock '
+                f'/usr/bin/flock -w 2 /run/user/{os.getuid()}/ddc-brightness.lock '
                 '/usr/bin/ddcutil --display 1 setvcp 10 ' + direction + ' 5')
             shortcut.set_string('binding', key)
             if path not in paths:

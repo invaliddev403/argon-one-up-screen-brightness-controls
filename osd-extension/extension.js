@@ -2,7 +2,7 @@ import Gio from 'gi://Gio';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 
-const IFACE = `<node><interface name="local.redwood.DdcBrightness">
+const IFACE = `<node><interface name="local.argononeup.DdcBrightness">
 <method name="Show"><arg type="u" direction="in" name="percent"/></method>
 </interface></node>`;
 
@@ -16,7 +16,7 @@ export default class DdcBrightnessOverlay extends Extension {
                     `Brightness ${level}%`, level / 100, 1);
             },
         });
-        this._object.export(Gio.DBus.session, '/local/redwood/DdcBrightness');
+        this._object.export(Gio.DBus.session, '/local/argononeup/DdcBrightness');
     }
 
     disable() {
